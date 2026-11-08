@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f6b3a">
+  <title>그린 리더</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>그린 리더</h1>
+    <span id="sensorBadge" class="badge off">센서 대기</span>
+  </header>
+
+  <main>
+    <!-- 수평계 -->
+    <section id="tab-level" class="tab active">
+      <div class="card center">
+        <canvas id="levelCanvas" width="600" height="600" aria-label="수평계"></canvas>
+        <div class="big" id="levelTotal">–</div>
+        <div class="sub" id="levelDir">폰을 그린 위에 평평하게 놓으세요</div>
+      </div>
+      <div class="card grid2">
+        <div><div class="label">앞뒤 (폰 위쪽 기준)</div><div class="val" id="levelY">–</div></div>
+        <div><div class="label">좌우</div><div class="val" id="levelX">–</div></div>
+      </div>
+      <button id="levelMeasure" class="btn primary wide">정밀 측정 (2초)</button>
+      <div class="card" id="levelHold" hidden></div>
+      <p class="hint">빨간 화살표는 공이 흘러가는 방향(내리막)입니다. 기포는 높은 쪽으로 움직입니다.</p>
+    </section>
+
+    <!-- 퍼팅 읽기 -->
+    <section id="tab-putt" class="tab">
+      <div class="card">
+        <div class="row">
+          <label class="label" for="distance">홀까지 거리</label>
+          <div class="stepper">
+            <button class="btn sm" data-step="distance:-0.5">−</button>
+            <input id="distance" type="number" inputmode="decimal" step="0.1" min="0.5" max="30">
+            <span class="unit">m</span>
+            <button class="btn sm" data-step="distance:0.5">+</button>
+          </div>
+        </div>
+        <div class="row">
+          <label class="label" for="stimp">그린 스피드</label>
+          <div class="stepper">
+            <button class="btn sm" data-step="stimp:-0.1">−</button>
+            <input id="stimp" type="number" inputmode="decimal" step="0.1" min="1.5" max="4.5">
+            <span class="unit">m</span>
+            <button class="btn sm" data-step="stimp:0.1">+</button>
+          </div>
+        </div>
+        <div class="chips" id="stimpPresets">
+          <button class="chip" data-stimp="2.4">느림 2.4</button>
+          <button class="chip" data-stimp="2.7">보통 2.7</button>
+          <button class="chip" data-stimp="3.0">빠름 3.0</button>
+          <button class="chip" data-stimp="3.3">아주 빠름 3.3</button>
+        </div>
+        <div class="row">
+          <span class="label">측정 지점 수</span>
+          <div class="seg" id="pointCount">
+            <button data-n="1">1</button><button data-n="2">2</button><button data-n="3">3</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card notice">
+        폰을 퍼팅 라인 위에 놓을 때 <b>폰 위쪽이 홀을 향하게</b> 하세요.<br>
+        측정 버튼을 누르고 손을 떼면 2초 동안 잽니다.
+      </div>
+
+      <div id="points"></div>
+
+      <div class="card" id="result" hidden>
+        <div class="label">조준점</div>
+        <div class="big" id="aimText">–</div>
+        <div class="sub" id="speedText"></div>
+        <div class="sub" id="breakText"></div>
+        <canvas id="puttCanvas" width="600" height="800" aria-label="예상 퍼팅 라인"></canvas>
+        <div class="hint" id="scaleText"></div>
+      </div>
+      <div class="card warn" id="resultError" hidden></div>
+    </section>
+
+    <!-- 설정 -->
+    <section id="tab-settings" class="tab">
+      <div class="card">
+        <h2>센서 보정</h2>
+        <p class="hint">폰 케이스나 센서 오차를 없앱니다. 바닥이 평평하지 않아도 됩니다.
+          같은 자리에서 폰을 두고 1단계, <b>그 자리에서 180° 돌려서</b> 2단계를 누르세요.</p>
+        <div class="grid2">
+          <button id="cal1" class="btn">1단계 측정</button>
+          <button id="cal2" class="btn" disabled>2단계 (180° 돌린 후)</button>
+        </div>
+        <div class="sub" id="calStatus"></div>
+        <button id="calReset" class="btn ghost">보정값 초기화</button>
+      </div>
+      <div class="card">
+        <h2>퍼팅 설정</h2>
+        <div class="row">
+          <label class="label" for="overshoot">홀 지나서 멈출 거리</label>
+          <div class="stepper">
+            <input id="overshoot" type="number" inputmode="numeric" step="5" min="0" max="100">
+            <span class="unit">cm</span>
+          </div>
+        </div>
+        <div class="row">
+          <label class="label" for="wake">측정 중 화면 꺼짐 방지</label>
+          <input id="wake" type="checkbox" class="switch">
+        </div>
+      </div>
+      <div class="card">
+        <h2>센서 상태</h2>
+        <pre id="raw" class="raw">–</pre>
+      </div>
+      <p class="hint">골프 규칙 4.3에 따라 정식 라운드나 대회 중에 기기로 그린 경사를 측정하면 규칙 위반입니다.
+        연습이나 친선 라운드에서만 쓰세요.</p>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-tab="level" class="active">수평계</button>
+    <button data-tab="putt">퍼팅 읽기</button>
+    <button data-tab="settings">설정</button>
+  </nav>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
